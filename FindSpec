@@ -1,0 +1,66 @@
+
+Sub FindSpec()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim i As Long
+
+Set rng = ActiveDocument.Range
+
+If ActiveDocument.Bookmarks.Exists("EndOfSection") = True Then
+ rng.Start = rng.Bookmarks("EndOfSection").Range.End
+End If
+
+With rng.Find
+    .Text = "SECTION [0-9]{2} [0-9]{2} [0-9]{2}"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="ThisSection"
+End With
+End If
+End With
+
+Set rng = ActiveDocument.Range
+
+If ActiveDocument.Bookmarks.Exists("ThisSection") = True Then
+ rng.Start = rng.Bookmarks("ThisSection").Range.End
+End If
+
+With rng.Find
+    .Text = "END OF SECTION"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="EndOfSection"
+End With
+End If
+End With
+
+Set rng = ActiveDocument.Range
+
+If ActiveDocument.Bookmarks.Exists("ThisSection") = True Then
+ rng.Start = rng.Bookmarks("ThisSection").Range.End
+ rng.End = rng.Bookmarks("EndOfSection").Range.Start
+i = 1
+For i = 1 To 10
+With rng.Find
+    .Text = "PART [0-9]{1} - *^13"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="Part_" & i
+    rng.Start = rng.Bookmarks("Part_" & i).Range.End
+ rng.End = ActiveDocument.Bookmarks("EndOfSection").Range.Start
+         i = i + 1
+End With
+End If
+End With
+Next i
+End If
+End Sub
