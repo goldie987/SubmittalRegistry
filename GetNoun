@@ -1,0 +1,15 @@
+Function getNoun(ByVal sentence As String)
+    getNoun = ""
+    pos1 = InStr(1, sentence, " ") 'find the first whitespace
+    If pos1 <= 0 Then
+        getNoun = sentence 'if no whitespace, then assume there is only the noun
+        Exit Function
+    End If
+    pos2 = InStr(pos1 + 1, sentence, " ") 'find the second whitespace
+    If pos2 <= 0 Then
+        getNoun = sentence 'if no second whitespace, then assume there is only the noun and qualifier
+        Exit Function
+    End If
+
+    getNoun = Left(sentence, pos2 - 1) 'if there are two or more spaces, get all chars before the second one
+End Function
