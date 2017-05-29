@@ -1,0 +1,39 @@
+Sub EraseSpaces()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim iCount As Integer
+Dim i As Long
+
+' Set range between this spec and the end of section
+Set rng = ActiveDocument.Range
+rng.Start = rng.Bookmarks("ThisSection").Range.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+
+'Remove double spaces from ends of lines
+For i = 1 To 500
+Set rng = ActiveDocument.Range
+With rng.Find
+    .Text = "^13^13[A-Za-z0-9^34{P}][!.]*"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+rng.Find.Execute FindText:="^13^13", _
+ReplaceWith:="", Replace:=wdReplaceAll
+End If
+End With
+Next i
+
+'Set paragraph spacing easier to read
+Set rng = ActiveDocument.Range
+rng.Start = rng.Bookmarks("ThisSection").Range.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+rng.ParagraphFormat.SpaceAfter = 12
+ 
+'turn double paragraphs to single
+rng.Find.Execute FindText:="^13^13", _
+ReplaceWith:="^p", Replace:=wdReplaceAll
+
+End Sub
