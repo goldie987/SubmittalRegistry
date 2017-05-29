@@ -73,6 +73,21 @@ heading = ActiveDocument.Bookmarks("Heading_" & i).Range.Text
 For p = 1 To section.Paragraphs.Count
 paragraph = section.Paragraphs(p).Range.Text
 
+If InStr(Left(heading, 1), "2") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+objExcel.Sheets("Products").Cells(pr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Products").Cells(pr, 2).Value = heading
+
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Products").Cells(pr, 3).Value = submittalTitle(0)
+objExcel.Sheets("Products").Cells(pr, 4).Value = submittalTitle(1)
+Else
+objExcel.Sheets("Products").Cells(pr, 3).Value = paragraph
+End If
+pr = pr + 1
+End If
+
 If InStr(UCase(heading), "SUBMIT") > 0 Then
 submittalTitle = Split(paragraph, ": ")
 
