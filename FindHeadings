@@ -1,0 +1,36 @@
+Sub FindHeadings()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim myRange As Range
+Dim iCount As Integer
+Dim i As Long
+
+Set rng = ActiveDocument.Range
+Set myRange = rng
+myRange.End = rng.Bookmarks("ThisSection").Range.End
+
+For i = 1 To 100
+Set rng = ActiveDocument.Range
+rng.Start = myRange.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+With rng.Find
+    .Text = "^13[0-9]{1}.[0-9]{1}"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+rng.Start = rng.Start + 1
+rng.End = rng.Paragraphs(1).Range.End
+rng.End = rng.End - 1
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="Heading_" & i
+End With
+
+Set myRange = rng
+
+End If
+End With
+Next i
+End Sub
