@@ -1,0 +1,127 @@
+Public Sub Excel()
+
+Dim spec As Range
+Dim paragraph As String
+Dim submittalDesc As String
+Dim heading As String
+Dim submittalTitle() As String
+Dim section As Range
+Dim myRange As Range
+Dim iCount As Integer
+Dim i As Long ' This is the quantity of headings in a spec section
+Dim p As Long 'This is the quantity of paragraphs under each heading
+Dim sr As Integer 'This is the number row of the submittal registry sheet we are on
+Dim pr As Integer 'This is the number row of the products sheet we are on
+Dim addSubmittal As Integer
+
+Dim objExcel
+Dim objDoc
+Dim objSelection
+Dim SaveAs1 As String
+
+sr = 1
+pr = 1
+
+' Open new excel sheet and set table headers
+SaveAs1 = ("/Users/turnermarketing/Desktop")
+
+Set objExcel = CreateObject("Excel.Application")
+Set objDoc = objExcel.Workbooks.add
+
+objExcel.Visible = True
+
+Set objSelection = objExcel.Selection
+
+objExcel.Worksheets(1).Name = "Products"
+objExcel.ActiveSheet.Cells(sr, 1).Value = "Spec"
+objExcel.ActiveSheet.Cells(sr, 2).Value = "Section"
+objExcel.ActiveSheet.Cells(sr, 3).Value = "Product"
+objExcel.ActiveSheet.Cells(sr, 4).Value = "Description"
+pr = pr + 1
+
+objExcel.Sheets.add
+objExcel.ActiveSheet.Cells(sr, 1).Value = "Spec"
+objExcel.ActiveSheet.Cells(sr, 2).Value = "Section"
+objExcel.ActiveSheet.Cells(sr, 3).Value = "Submittal Title"
+objExcel.ActiveSheet.Cells(sr, 4).Value = "Description"
+sr = sr + 1
+objExcel.Worksheets(1).Name = "Submittal Registry"
+
+
+
+Application.DisplayAlerts = True
+
+' Set range for this spec section
+Set spec = ActiveDocument.Range
+
+spec.Start = spec.Bookmarks("ThisSection").Range.End
+spec.End = spec.Bookmarks("EndOfSection").Range.Start
+ThisSpec = ActiveDocument.Bookmarks("ThisSection").Range.Text
+
+' Start loop for headers
+
+For i = 1 To 100
+If ActiveDocument.Bookmarks.Exists("Heading_" & i) = True Then
+If ActiveDocument.Bookmarks.Exists("Heading_" & i + 1) = True Then
+Set section = ActiveDocument.Range
+section.Start = spec.Bookmarks("Heading_" & i).Range.End + 1
+section.End = spec.Bookmarks("Heading_" & i + 1).Range.Start
+
+heading = ActiveDocument.Bookmarks("Heading_" & i).Range.Text
+' Add each paragraph as a submittal
+' Count the Paragraphs
+For p = 1 To section.Paragraphs.Count
+paragraph = section.Paragraphs(p).Range.Text
+
+If InStr(UCase(heading), "SUBMIT") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+' Add item to sheet
+objExcel.Sheets("Submittal Registry").Cells(sr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Submittal Registry").Cells(sr, 2).Value = heading
+objExcel.Sheets("Submittal Registry").Cells(sr, 3).Value = submittalTitle(0)
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Submittal Registry").Cells(sr, 4).Value = submittalTitle(1)
+End If
+sr = sr + 1
+
+Else
+If InStr(UCase(paragraph), "SUBMIT") > 0 Or InStr(UCase(paragraph), "MOCKUPS:") > 0 Or InStr(UCase(paragraph), "CONFERENCE:") > 0 Or InStr(UCase(paragraph), "FURNISH") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+' Add item to sheet
+objExcel.Sheets("Submittal Registry").Cells(sr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Submittal Registry").Cells(sr, 2).Value = heading
+objExcel.Sheets("Submittal Registry").Cells(sr, 3).Value = submittalTitle(0)
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Submittal Registry").Cells(sr, 4).Value = submittalTitle(1)
+End If
+sr = sr + 1
+
+' Add section 1.1 Section Includes to product worksheet
+Else
+If InStr(UCase(heading), "1.1") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+objExcel.Sheets("Products").Cells(pr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Products").Cells(pr, 2).Value = heading
+objExcel.Sheets("Products").Cells(pr, 3).Value = submittalTitle(0)
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Products").Cells(pr, 4).Value = submittalTitle(1)
+End If
+pr = pr + 1
+
+Else
+sr = sr
+pr = pr
+End If
+End If
+End If
+' Go to the next paragraph
+Next p
+End If
+End If
+' Go to the next Heading
+Next i
+
+End Sub
