@@ -1,0 +1,464 @@
+Sub FindSpec()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim i As Long
+Dim searchRange As Range
+
+Set rng = ActiveDocument.Range
+rng.Start = rng.Bookmarks("HARDSTART").Range.End
+ rng.End = rng.Bookmarks("HARDSTOP").Range.Start
+
+Set searchRange = rng
+
+' If ActiveDocument.Bookmarks.Exists("EndOfSection") = True Then
+' searchRange.Start = ActiveDocument.Bookmarks("EndOfSection").Range.End
+' End If
+
+With searchRange.Find
+    .Text = "SECTION [0-9]{2} [0-9]{2} [0-9]{2}"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=searchRange, Name:="ThisSection"
+End With
+End If
+End With
+
+Set searchRange = rng
+
+If ActiveDocument.Bookmarks.Exists("ThisSection") = True Then
+ searchRange.Start = rng.Bookmarks("ThisSection").Range.End
+End If
+
+With searchRange.Find
+    .Text = "END OF SECTION"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=searchRange, Name:="EndOfSection"
+End With
+End If
+End With
+
+Set searchRange = rng
+
+If ActiveDocument.Bookmarks.Exists("ThisSection") = True Then
+ searchRange.Start = ActiveDocument.Bookmarks("ThisSection").Range.End
+ searchRange.End = rng.Bookmarks("EndOfSection").Range.Start
+i = 1
+For i = 1 To 10
+With rng.Find
+    .Text = "PART [0-9]{1} - *^13"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="Part_" & i
+    rng.Start = rng.Bookmarks("Part_" & i).Range.End
+ rng.End = ActiveDocument.Bookmarks("EndOfSection").Range.Start
+         i = i + 1
+End With
+End If
+End With
+Next i
+End If
+End Sub
+Sub EraseSpaces()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim iCount As Integer
+Dim i As Long
+
+' Set range between this spec and the end of section
+Set rng = ActiveDocument.Range
+rng.Start = rng.Bookmarks("ThisSection").Range.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+
+'Remove double spaces from ends of lines
+For i = 1 To 500
+Set rng = ActiveDocument.Range
+With rng.Find
+    .Text = "^13^13[A-Za-z0-9^34{P}][!.]*"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+rng.Find.Execute FindText:="^13^13", _
+ReplaceWith:="", Replace:=wdReplaceAll
+End If
+End With
+Next i
+
+'Set paragraph spacing easier to read
+Set rng = ActiveDocument.Range
+rng.Start = rng.Bookmarks("ThisSection").Range.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+rng.ParagraphFormat.SpaceAfter = 12
+ 
+'turn double paragraphs to single
+rng.Find.Execute FindText:="^13^13", _
+ReplaceWith:="^p", Replace:=wdReplaceAll
+
+End Sub
+Sub FindHeadings()
+'
+' SpecRecord Macro
+'
+'
+Dim rng As Range
+Dim myRange As Range
+Dim iCount As Integer
+Dim i As Long
+
+Set rng = ActiveDocument.Range
+Set myRange = rng
+myRange.End = rng.Bookmarks("ThisSection").Range.End
+
+For i = 1 To 100
+Set rng = ActiveDocument.Range
+rng.Start = myRange.End
+rng.End = rng.Bookmarks("EndOfSection").Range.Start
+With rng.Find
+    .Text = "^13[0-9]{1}.[0-9]{1}"
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+rng.Start = rng.Start + 1
+rng.End = rng.Paragraphs(1).Range.End
+rng.End = rng.End - 1
+With ActiveDocument.Bookmarks
+        .add Range:=rng, Name:="Heading_" & i
+End With
+
+Set myRange = rng
+
+End If
+End With
+Next i
+End Sub
+Sub SectionIncludes()
+'
+' SpecRecord Macro
+'
+'
+Dim sectionOne As Range
+Dim sectionB As Range
+Dim thisItem As Range
+Dim y As Integer
+Dim x As Long
+Dim startNumber As Integer
+Dim numberProducts As Integer
+
+Set sectionOne = ActiveDocument.Range
+sectionOne.Start = ActiveDocument.Bookmarks("Heading_1").Range.End + 1
+sectionOne.End = ActiveDocument.Bookmarks("Heading_2").Range.Start
+
+Set sectionB = sectionOne
+
+With sectionB.Find
+    .Text = "B. "
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+sectionOne.End = sectionB.Paragraphs(1).Range.Start
+sectionOne.Start = ActiveDocument.Bookmarks("Heading_1").Range.End + 1
+End If
+End With
+
+numberProducts = sectionOne.Paragraphs.Count
+If numberProducts > 2 Then
+startNumber = 2
+Else
+startNumber = 1
+End If
+
+y = 1
+For x = startNumber To sectionOne.Paragraphs.Count
+
+Set thisItem = sectionOne.Paragraphs(x).Range
+thisItem.End = thisItem.End - 1
+With ActiveDocument.Bookmarks
+        .add Range:=thisItem, Name:="Product_" & y
+End With
+y = y + 1
+Next x
+
+
+End Sub
+Public Sub Excel()
+
+Dim spec As Range
+Dim paragraph As String
+Dim submittalDesc As String
+Dim heading As String
+Dim submittalTitle() As String
+Dim section As Range
+Dim myRange As Range
+Dim iCount As Integer
+Dim i As Long ' This is the quantity of headings in a spec section
+Dim p As Long 'This is the quantity of paragraphs under each heading
+Dim sr As Integer 'This is the number row of the submittal registry sheet we are on
+Dim pr As Integer 'This is the number row of the products sheet we are on
+Dim addSubmittal As Integer
+Dim isitaLetter As Range
+
+Dim sectionOne As Range
+Dim sectionB As Range
+Dim thisItem As Range
+Dim y As Integer
+Dim x As Long
+Dim startNumber As Integer
+Dim numberProducts As Integer
+Dim thisProduct As String
+
+Dim objExcel
+Dim objDoc
+Dim objSelection
+Dim SaveAs1 As String
+Dim whatFor As String
+Dim thisFor() As String
+
+sr = 1
+pr = 1
+
+' Open new excel sheet and set table headers
+SaveAs1 = ("/Users/turnermarketing/Desktop")
+
+Set objExcel = CreateObject("Excel.Application")
+Set objDoc = objExcel.Workbooks.add
+
+objExcel.Visible = True
+
+Set objSelection = objExcel.Selection
+
+objExcel.Worksheets(1).Name = "Products"
+objExcel.ActiveSheet.Cells(sr, 1).Value = "Spec"
+objExcel.ActiveSheet.Cells(sr, 2).Value = "Section"
+objExcel.ActiveSheet.Cells(sr, 3).Value = "Product"
+objExcel.ActiveSheet.Cells(sr, 4).Value = "Description"
+pr = pr + 1
+
+objExcel.Sheets.add
+objExcel.ActiveSheet.Cells(sr, 1).Value = "Spec"
+objExcel.ActiveSheet.Cells(sr, 2).Value = "Section"
+objExcel.ActiveSheet.Cells(sr, 3).Value = "Submittal Title"
+objExcel.ActiveSheet.Cells(sr, 4).Value = "Description"
+sr = sr + 1
+objExcel.Worksheets(1).Name = "Submittal Registry"
+
+
+
+Application.DisplayAlerts = True
+
+' Set range for this spec section
+Set spec = ActiveDocument.Range
+
+spec.Start = spec.Bookmarks("ThisSection").Range.End
+spec.End = spec.Bookmarks("EndOfSection").Range.Start
+ThisSpec = ActiveDocument.Bookmarks("ThisSection").Range.Text
+
+' Start loop for headers
+
+For i = 1 To 100
+If ActiveDocument.Bookmarks.Exists("Heading_" & i) = True Then
+If ActiveDocument.Bookmarks.Exists("Heading_" & i + 1) = True Then
+Set section = ActiveDocument.Range
+section.Start = spec.Bookmarks("Heading_" & i).Range.End + 1
+section.End = spec.Bookmarks("Heading_" & i + 1).Range.Start
+
+heading = ActiveDocument.Bookmarks("Heading_" & i).Range.Text
+
+If InStr(heading, "1.1") > 0 Then
+ ' Insert it here
+Set sectionOne = section
+
+Set sectionB = sectionOne
+
+With sectionB.Find
+    .Text = "B. "
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+sectionOne.End = sectionB.Paragraphs(1).Range.Start
+sectionOne.Start = ActiveDocument.Bookmarks("Heading_1").Range.End + 1
+End If
+End With
+
+numberProducts = sectionOne.Paragraphs.Count
+If numberProducts > 2 Then
+startNumber = 2
+Else
+startNumber = 1
+End If
+
+y = 1
+For x = startNumber To sectionOne.Paragraphs.Count
+paragraph = sectionOne.Paragraphs(x).Range.Text
+Set thisItem = sectionOne.Paragraphs(x).Range
+thisItem.End = thisItem.End - 1
+With ActiveDocument.Bookmarks
+        .add Range:=thisItem, Name:="Product_" & y
+End With
+y = y + 1
+
+objExcel.Sheets("Products").Cells(pr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Products").Cells(pr, 2).Value = heading
+objExcel.Sheets("Products").Cells(pr, 3).Value = paragraph
+pr = pr + 1
+Next x
+Else
+' Add each paragraph as a submittal
+' Count the Paragraphs
+For p = 1 To section.Paragraphs.Count
+paragraph = section.Paragraphs(p).Range.Text
+
+' LOOP FOR ALL THE PRODUCTS
+If InStr(UCase(paragraph), "EACH TYPE OF PRODUCT") > 0 Then
+For x = 1 To y - 1
+
+submittalTitle = Split(paragraph, ": ")
+thisProduct = ActiveDocument.Bookmarks("Product_" & x).Range.Text
+thisProduct = Right(thisProduct, Len(thisProduct) - 3)
+thisProduct = Left(thisProduct, Len(thisProduct) - 1)
+
+' Add item to sheet
+objExcel.Sheets("Submittal Registry").Cells(sr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Submittal Registry").Cells(sr, 2).Value = heading
+objExcel.Sheets("Submittal Registry").Cells(sr, 3).Value = submittalTitle(0) & " for " & thisProduct
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Submittal Registry").Cells(sr, 4).Value = submittalTitle(1)
+End If
+sr = sr + 1
+
+Next x
+Else
+
+' Add what the submittal is for from the description to the title
+thisFor = Split(paragraph, ":")
+If InStr(thisFor(0), "indicated") > 0 And InStr(UCase(thisFor(0)), "EACH") > 0 Then
+thisFor = Split(paragraph, "indicated")
+whatFor = thisFor(0)
+thisFor = Split(UCase(whatFor), "EACH")
+whatFor = " for " & LCase(getNoun(thisFor(1)))
+Else
+
+If InStr(paragraph, ": ") > 0 Then
+thisFor = Split(paragraph, ":")
+whatFor = thisFor(1)
+If InStr(UCase(whatFor), "FOR") > 0 Then
+thisFor = Split(UCase(whatFor), "FOR")
+whatFor = " for " & LCase(getNoun(thisFor(1)))
+End If
+Else
+If InStr(UCase(whatFor), "EACH") > 0 Then
+thisFor = Split(UCase(whatFor), "EACH")
+whatFor = " for " & LCase(getNoun(thisFor(1)))
+Else
+whatFor = ""
+End If
+End If
+End If
+
+
+' MAKE SURE PARAGRAPH STARTS WITH LETTER
+
+If InStr(Left(heading, 1), "2") > 0 Then
+Set isitaLetter = section.Paragraphs(p).Range
+isitaLetter.End = isitaLetter.Start + 3
+
+With isitaLetter.Find
+    .Text = "[A-Z]{1}. "
+    .MatchWholeWord = False
+    .MatchWildcards = True
+If .Execute() Then
+
+submittalTitle = Split(paragraph, ": ")
+
+objExcel.Sheets("Products").Cells(pr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Products").Cells(pr, 2).Value = heading
+
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Products").Cells(pr, 3).Value = submittalTitle(0)
+objExcel.Sheets("Products").Cells(pr, 4).Value = submittalTitle(1)
+Else
+objExcel.Sheets("Products").Cells(pr, 3).Value = paragraph
+End If
+pr = pr + 1
+End If
+End With
+End If
+
+If InStr(UCase(heading), "SUBMIT") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+' Add item to sheet
+objExcel.Sheets("Submittal Registry").Cells(sr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Submittal Registry").Cells(sr, 2).Value = heading
+objExcel.Sheets("Submittal Registry").Cells(sr, 3).Value = submittalTitle(0) & whatFor
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Submittal Registry").Cells(sr, 4).Value = submittalTitle(1)
+End If
+sr = sr + 1
+
+Else
+If InStr(UCase(paragraph), "SUBMIT") > 0 Or InStr(UCase(paragraph), "MOCKUPS:") > 0 Or InStr(UCase(paragraph), "CONFERENCE:") > 0 Or InStr(UCase(paragraph), "FURNISH") > 0 Then
+submittalTitle = Split(paragraph, ": ")
+
+' Add item to sheet
+objExcel.Sheets("Submittal Registry").Cells(sr, 1).Value = Right(ThisSpec, 8)
+objExcel.Sheets("Submittal Registry").Cells(sr, 2).Value = heading
+objExcel.Sheets("Submittal Registry").Cells(sr, 3).Value = submittalTitle(0) & whatFor
+If InStr(UCase(paragraph), ":") > 0 Then
+objExcel.Sheets("Submittal Registry").Cells(sr, 4).Value = submittalTitle(1)
+End If
+sr = sr + 1
+
+Else
+sr = sr
+pr = pr
+End If
+End If
+End If
+' Go to the next paragraph
+Next p
+End If
+End If
+End If
+' Go to the next Heading
+Next i
+
+End Sub
+ Function is_noun(ByVal wrd As String)
+  Dim s As Object, l As Variant
+  is_noun = False
+  Set s = SynonymInfo(wrd)
+  Let l = s.PartOfSpeechList
+  If s.MeaningCount <> 0 Then
+      For i = LBound(l) To UBound(l)
+          If l(i) = wdNoun Then
+              is_noun = True
+          End If
+      Next
+  End If
+End Function
+Function getNoun(ByVal sentence As String)
+   getNoun = ""
+   Dim wrds() As String
+   wrds = Split(sentence)
+   For i = LBound(wrds) To UBound(wrds)
+        If is_noun(wrds(i)) Then
+            getNoun = wrds(i)
+            If i < UBound(wrds) Then
+                getNoun = getNoun & " " & wrds(i + 1)
+            End If
+            Exit Function
+        End If
+    Next
+End Function
